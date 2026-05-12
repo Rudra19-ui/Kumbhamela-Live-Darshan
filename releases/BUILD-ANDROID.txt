@@ -1,0 +1,27 @@
+KumbhConnect Android release APK
+=================================
+
+Latest build output (after running the build script):
+  KumbhConnect-1.0.0-release.apk
+
+How to rebuild
+--------------
+1. Install JDK 17+ (e.g. Eclipse Temurin) and Android Studio (SDK).
+2. Fix JAVA_HOME if needed (Windows Control Panel or session):
+     setx JAVA_HOME "C:\Program Files\Eclipse Adoptium\jdk-17.0.17.10-hotspot"
+3. From repo root:
+     powershell -ExecutionPolicy Bypass -File .\scripts\build-android-apk.ps1
+
+First-time native project
+-------------------------
+If mobile/android does not exist yet:
+     cd mobile
+     npx expo prebuild --platform android
+
+Notes
+-----
+- mobile/android/local.properties is gitignored; the script writes sdk.dir from %%LOCALAPPDATA%%\Android\Sdk.
+- If Gradle fails with "path longer than 260 characters" under OneDrive, New Architecture is disabled in app.json and android/gradle.properties (newArchEnabled=false).
+- Release APK is signed with the default debug keystore from Gradle unless you configure a release keystore for Play Store uploads.
+
+Package name: com.kumbhconnect.app

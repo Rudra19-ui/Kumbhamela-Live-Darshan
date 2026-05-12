@@ -1,0 +1,57 @@
+# Production-style stack: Postgres + Redis + Gunicorn (no bind-mount of source code).
+#
+# 1) Copy env.production.template → .env.production and fill secrets + ALLOWED_HOSTS.
+# 2) docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+# 3) docker compose -f docker-compose.prod.yml --env-file .env.production run --rm web python manage.py seed_kumbh
+#
+# API will be on port 8000 unless you put HTTPS reverse proxy in front.
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-kumbhconnect}
+      POSTGRES_USER: ${DB_USER:-kumbh}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env.production}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-kumbh} -d ${DB_NAME:-kumbhconnect}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  web:
+    build: .
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+    ports:
+      - "${PUBLIC_WEB_PORT:-8000}:8000"
+    env_file:
+      - .env.production
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data_prod:

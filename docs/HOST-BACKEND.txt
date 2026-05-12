@@ -1,0 +1,70 @@
+Host the KumbhConnect Django API so your APK can call it
+=======================================================
+
+Your APK reads the API base URL at BUILD TIME from:
+
+  mobile/.env  →  EXPO_PUBLIC_API_URL=...
+
+If you already built the APK with http://127.0.0.1:8000, it will NOT reach your laptop
+from the phone. You must either:
+
+  A) Rebuild the APK after setting EXPO_PUBLIC_API_URL to your public API URL, or  
+  B) Use an update channel / OTA only if you add runtime config (not in this project today).
+
+Recommended: HTTPS public URL (Cloudflare Tunnel, ngrok, or a VPS + reverse proxy).
+
+
+Option 1 — Fastest test (tunnel to your PC)
+-------------------------------------------
+1) Run Django locally or with Docker on port 8000.
+2) Install Cloudflare Tunnel (cloudflared) or ngrok.
+3) Example (ngrok):  ngrok http 8000
+   You get https://xxxx.ngrok-free.app
+4) Put that in mobile/.env:
+     EXPO_PUBLIC_API_URL=https://xxxx.ngrok-free.app
+5) Rebuild the APK (see releases/BUILD-ANDROID.txt or scripts/build-android-apk.ps1).
+
+
+Option 2 — Docker on a VPS (Postgres + Redis + Gunicorn)
+---------------------------------------------------------
+Prereqs: Linux VPS, Docker + Docker Compose plugin, domain (optional but best for HTTPS).
+
+1) Copy env file:
+     copy env.production.template  .env.production
+   Edit .env.production:
+     - SECRET_KEY (long random)
+     - ALLOWED_HOSTS (your domain and/or server IP, comma-separated)
+     - DB_PASSWORD
+     - For first APK testing you can keep ENABLE_DEV_LOGIN=1 and SKIP_PAYMENT_CONFIRMATION=1
+       Turn both to 0 when you go live with OTP + Razorpay.
+
+2) Start stack:
+     docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+
+3) Seed demo data (categories, feeds, products, etc.):
+     docker compose -f docker-compose.prod.yml --env-file .env.production run --rm web python manage.py seed_kumbh
+
+4) Smoke test from your laptop:
+     curl https://YOUR_DOMAIN/api/v1/poojas/categories/
+   (or http://SERVER_IP:8000/... if you only opened port 8000)
+
+5) Point the mobile app:
+     mobile/.env → EXPO_PUBLIC_API_URL=https://YOUR_DOMAIN
+   Rebuild APK.
+
+HTTPS notes
+-----------
+- Android cleartext HTTP is often blocked or flaky; prefer HTTPS.
+- If you use nginx + Let’s Encrypt, terminate TLS there and forward to web:8000 with
+  headers X-Forwarded-Proto https (already expected in config.settings.production).
+
+
+Firewall
+--------
+Open the port you publish (default PUBLIC_WEB_PORT=8000 in compose) or 80/443 if you use nginx.
+
+
+Where the API lives in code
+-----------------------------
+- URL routes: config/urls.py
+- Apps: apps/* (poojas, pundits, bookings, marketplace, live_stream, notifications, accounts, …)
