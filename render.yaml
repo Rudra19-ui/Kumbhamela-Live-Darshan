@@ -1,24 +1,23 @@
-# Render Blueprint — https://render.com/docs/blueprint-spec
-# Apply: Dashboard → New → Blueprint → connect repo → select this file.
-# After deploy, set EXPO_PUBLIC_API_URL on the mobile app to your web URL (https://…onrender.com).
+# Render Blueprint (Hobby / free-capable) — https://render.com/docs/free
+# Requires a free Hobby workspace (no paid plan). Pick "Free" if Render still asks for instance type.
+# If Blueprint flow still asks for payment, use docs/RENDER.md → "Free tier (manual)" instead.
 
 databases:
   - name: kumbhconnect-db
     databaseName: kumbhconnect
     user: kumbhconnect
-    plan: basic-256mb
+    plan: free
 
 services:
-  # Redis-compatible cache for Django cache, Channels, Celery broker
   - type: keyvalue
     name: kumbhconnect-cache
-    plan: starter
+    plan: free
     ipAllowList: []
 
   - type: web
     name: kumbhconnect-api
     runtime: docker
-    plan: starter
+    plan: free
     dockerfilePath: ./Dockerfile
     healthCheckPath: /healthz
     envVars:
@@ -39,6 +38,6 @@ services:
           name: kumbhconnect-cache
           type: keyvalue
           property: connectionString
-      # Optional: comma-separated web admin origins (Vite/Next) if you use browser cookies there
+      # Mobile JWT does not need CORS; set a placeholder or your real admin site (comma-separated HTTPS origins).
       - key: CORS_ALLOWED_ORIGINS
-        sync: false
+        value: "https://example.com"

@@ -30,9 +30,9 @@ cp .env.example .env
 docker compose up --build
 ```
 
-## Deploy on Render
+## Deploy on Render (free Hobby tier)
 
-Use the included **`render.yaml`** Blueprint (PostgreSQL + Key Value + Docker web) or follow **`docs/RENDER.md`**.
+No paid plan required for a **free** Web + **free** Postgres + **free** Key Value stack. Follow **`docs/RENDER.md`** (manual steps first). Optional **`render.yaml`** Blueprint uses **`plan: free`** if your workspace allows it.
 
 ## Implemented API surface (prefix `/api/v1/`)
 
